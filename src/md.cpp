@@ -294,11 +294,15 @@ int run_simulation(int argc, char *argv[]) {
          double c2;
          for (unsigned int i = 0; i < subunit_bead.size(); i++) {
             c2 = 1 + (delta_t * 0.5 * fric_zeta / subunit_bead[i].m);
-            subunit_bead[i].noise.x = gsl_ran_gaussian(r,1) * sqrt(0.5 * UnitEnergy * fric_zeta * delta_t) / subunit_bead[i].m;                  //determine noise term
-            subunit_bead[i].noise.y = gsl_ran_gaussian(r,1) * sqrt(0.5 * UnitEnergy * fric_zeta * delta_t) / subunit_bead[i].m;
-            subunit_bead[i].noise.z = gsl_ran_gaussian(r,1) * sqrt(0.5 * UnitEnergy * fric_zeta * delta_t) / subunit_bead[i].m;
-            subunit_bead[i].vel += (subunit_bead[i].tforce ^ (0.5 * delta_t / subunit_bead[i].m)) + (subunit_bead[i].pos ^ (fric_zeta / subunit_bead[i].m)) + subunit_bead[i].noise;
+            subunit_bead[i].noise.x = gsl_ran_gaussian(r,1) * sqrt(2 * UnitEnergy * fric_zeta * delta_t);                  //determine noise term
+            subunit_bead[i].noise.y = gsl_ran_gaussian(r,1) * sqrt(2 * UnitEnergy * fric_zeta * delta_t);
+            subunit_bead[i].noise.z = gsl_ran_gaussian(r,1) * sqrt(2 * UnitEnergy * fric_zeta * delta_t);
+			subunit_bead[i].oldtforce = subunit_bead[i].tforce;
+			//cout << subunit_bead[i].noise.x << endl;
+           // subunit_bead[i].vel += (subunit_bead[i].tforce ^ (0.5 * delta_t / subunit_bead[i].m)) + subunit_bead[i].noise;// + (subunit_bead[i].pos ^ (fric_zeta / subunit_bead[i].m));
            // cout << "velocities are " << subunit_bead[i].vel.x << " , " << subunit_bead[i].vel.y << " , " << subunit_bead[i].vel.z << endl;
+         //  subunit_bead[i].oldpos = subunit_bead[i].pos;
+		 //  cout << "assigned old position" << endl;
          }
          for (unsigned int i = 0; i < protein.size(); i++) {
             for (unsigned int ii = 0; ii < protein[i].itsB.size(); ii++) {
@@ -338,7 +342,7 @@ int run_simulation(int argc, char *argv[]) {
       } else {                                                                //FOR BROWNIAN DYNAMICS
          for (unsigned int i = 0; i < subunit_bead.size(); i++) {
             double c2 = 1 + (delta_t * 0.5 * fric_zeta / subunit_bead[i].m);
-            subunit_bead[i].vel += (subunit_bead[i].tforce ^ (0.5 * delta_t / subunit_bead[i].m)) + (subunit_bead[i].pos ^ (fric_zeta / subunit_bead[i].m)) + subunit_bead[i].noise;
+            subunit_bead[i].vel += ((subunit_bead[i].oldtforce + subunit_bead[i].tforce) ^ (0.5 * delta_t / subunit_bead[i].m)) + (subunit_bead[i].noise ^ (1/subunit_bead[i].m)) - ((subunit_bead[i].pos - subunit_bead[i].oldpos) ^ (fric_zeta / subunit_bead[i].m));
          }  
       }  // else
 
@@ -352,7 +356,7 @@ int run_simulation(int argc, char *argv[]) {
       //////////////////////////////////////////////////////////////////////////////////////////////////////////
       /*                                                              MAKING RESTART FILE                                                                                                                */
       //////////////////////////////////////////////////////////////////////////////////////////////////////////         
-      if (a % 1000000 == 0 && world.rank() == 0) {
+      if (a % 10000 == 0 && world.rank() == 0) {
          stringstream step;
          step << a;
          restartFilename = "outfiles/restart_" + step.str();
