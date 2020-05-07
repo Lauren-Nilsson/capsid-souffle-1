@@ -123,7 +123,7 @@ int run_simulation(int argc, char *argv[]) {
    totaltime = computationSteps * delta_t;
    T = temperature / double(298);
    double UnitEnergy = SIenergy * SItime * SItime / (SImass * SIsigma * (1e-9));
-   //cout << "Unit energy is " << UnitEnergy << endl;
+ //  cout << "Unit energy is " << UnitEnergy << endl;
                         
    if (world.rank() == 0) {                                 // making model.parameters file
       sysdata << "Simulation will run for " << totaltime * SItime / (1e-9) << " nanoseconds with a "
@@ -342,7 +342,20 @@ int run_simulation(int argc, char *argv[]) {
       } else {                                                                //FOR BROWNIAN DYNAMICS
          for (unsigned int i = 0; i < subunit_bead.size(); i++) {
             double c2 = 1 + (delta_t * 0.5 * fric_zeta / subunit_bead[i].m);
-            subunit_bead[i].vel += ((subunit_bead[i].oldtforce + subunit_bead[i].tforce) ^ (0.5 * delta_t / subunit_bead[i].m)) + (subunit_bead[i].noise ^ (1/subunit_bead[i].m)) - ((subunit_bead[i].pos - subunit_bead[i].oldpos) ^ (fric_zeta / subunit_bead[i].m));
+			    VECTOR3D r_vec; //= (A->pos - B->pos);
+				r_vec.x = subunit_bead[i].oldpos.x - subunit_bead[i].pos.x;
+				r_vec.y = subunit_bead[i].oldpos.y - subunit_bead[i].pos.y;
+				r_vec.z = subunit_bead[i].oldpos.z - subunit_bead[i].pos.z;
+				VECTOR3D box = subunit_bead[i].bx;
+				VECTOR3D hbox = subunit_bead[i].hbx;
+				if (r_vec.x > hbox.x) r_vec.x -= box.x;
+				else if (r_vec.x < -hbox.x) r_vec.x += box.x;
+				if (r_vec.y > hbox.y) r_vec.y -= box.y;
+				else if (r_vec.y < -hbox.y) r_vec.y += box.y;
+				if (r_vec.z > hbox.z) r_vec.z -= box.z;
+				else if (r_vec.z < -hbox.z) r_vec.z += box.z;
+            subunit_bead[i].vel += ((subunit_bead[i].oldtforce + subunit_bead[i].tforce) ^ (0.5 * delta_t / subunit_bead[i].m)) + (subunit_bead[i].noise ^ (1/subunit_bead[i].m)) + 
+			(r_vec ^ (fric_zeta / subunit_bead[i].m));
          }  
       }  // else
 
